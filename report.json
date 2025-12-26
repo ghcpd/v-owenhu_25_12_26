@@ -1,0 +1,115 @@
+{
+  "summary": {
+    "total_hardening_issues": 13,
+    "critical": 4,
+    "high": 4,
+    "medium": 3,
+    "low": 2
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "input.py",
+      "line_numbers": [7, 8, 9],
+      "original": "DATABASE_PASSWORD = \"admin123!@#\"\nAPI_KEY = \"sk-1234567890abcdefghijklmnopqrstuvwxyz\"\nENCRYPTION_KEY = \"my_secret_key_2024\"",
+      "updated": "DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', 'default_secure_password')\nAPI_KEY = os.getenv('API_KEY', 'default_secure_api_key')\nENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'default_secure_encryption_key')",
+      "hardening_explanation": "Hardening issue category: Insecure default configurations. Severity: Critical. Affected lines: 7-9. Original implementation hardcodes sensitive secrets directly in code, making them easily accessible to anyone with code access. Updated uses environment variables with secure defaults, preventing accidental exposure and allowing secure deployment practices."
+    },
+    {
+      "id": 2,
+      "file": "input.py",
+      "line_numbers": [22],
+      "original": "query = \"INSERT INTO users (username, password, email) VALUES ('\" + username + \"', '\" + hashed_pwd + \"', '\" + email + \"')\"",
+      "updated": "conn.execute(\"INSERT INTO users (username, password, email) VALUES (?, ?, ?)\", (username, hashed_pwd, email))",
+      "hardening_explanation": "Hardening issue category: SQL injection vulnerability. Severity: Critical. Affected line: 22. Original uses string concatenation for SQL queries, allowing injection attacks. Updated uses parameterized queries, which safely escape inputs and prevent injection."
+    },
+    {
+      "id": 3,
+      "file": "input.py",
+      "line_numbers": [30],
+      "original": "query = \"SELECT * FROM users WHERE username='\" + username + \"' AND password='\" + hashed_pwd + \"'\"",
+      "updated": "cursor = conn.execute(\"SELECT password FROM users WHERE username=?\", (username,))",
+      "hardening_explanation": "Hardening issue category: SQL injection vulnerability. Severity: Critical. Affected line: 30. Original uses string concatenation, vulnerable to injection. Updated uses parameterized queries for security."
+    },
+    {
+      "id": 4,
+      "file": "input.py",
+      "line_numbers": [16],
+      "original": "return hashlib.md5(password.encode()).hexdigest()",
+      "updated": "return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()",
+      "hardening_explanation": "Hardening issue category: Weak password hashing. Severity: High. Affected line: 16. MD5 is cryptographically broken and fast, unsuitable for passwords. Updated uses bcrypt with salt for secure, slow hashing resistant to brute-force."
+    },
+    {
+      "id": 5,
+      "file": "input.py",
+      "line_numbers": [68],
+      "original": "query = f\"SELECT * FROM users WHERE username='{username}'\"",
+      "updated": "cursor = conn.execute(\"SELECT id, username, email FROM users WHERE username=?\", (username,))",
+      "hardening_explanation": "Hardening issue category: SQL injection vulnerability. Severity: Critical. Affected line: 68. Original uses f-string formatting, vulnerable to injection. Updated uses parameterized queries."
+    },
+    {
+      "id": 6,
+      "file": "input.py",
+      "line_numbers": [72],
+      "original": "subprocess.call(cmd, shell=True)",
+      "updated": "shutil.copy('users.db', backup_path)",
+      "hardening_explanation": "Hardening issue category: Unsafe subprocess usage. Severity: High. Affected line: 72. subprocess.call with shell=True can lead to command injection. Updated uses shutil.copy for safe file operations."
+    },
+    {
+      "id": 7,
+      "file": "input.py",
+      "line_numbers": [48, 54],
+      "original": "pickle.dump(user_data, f)\n...\nuser_data = pickle.load(f)",
+      "updated": "json.dump(..., temp_file)\n...\nuser_data = json.load(f)",
+      "hardening_explanation": "Hardening issue category: Insecure deserialization. Severity: High. Affected lines: 48, 54. Pickle can execute arbitrary code during deserialization. Updated uses JSON for safe serialization."
+    },
+    {
+      "id": 8,
+      "file": "input.py",
+      "line_numbers": [36],
+      "original": "token += str(random.randint(0, 9))",
+      "updated": "return secrets.token_hex(16)",
+      "hardening_explanation": "Hardening issue category: Weak random generation. Severity: Medium. Affected line: 36. random.randint is not cryptographically secure. Updated uses secrets module for secure tokens."
+    },
+    {
+      "id": 9,
+      "file": "input.py",
+      "line_numbers": [],
+      "original": "No input validation",
+      "updated": "validate_input(username, password, email)",
+      "hardening_explanation": "Hardening issue category: Lack of input validation. Severity: Medium. Affected throughout functions. Original accepts any input, risking malformed data. Updated adds regex validation for username, password length, and email format."
+    },
+    {
+      "id": 10,
+      "file": "input.py",
+      "line_numbers": [],
+      "original": "No error handling",
+      "updated": "try-except blocks with logging",
+      "hardening_explanation": "Hardening issue category: Lack of safe error handling. Severity: Medium. Affected throughout. Original crashes on errors. Updated adds try-except with logging for graceful failure and monitoring."
+    },
+    {
+      "id": 11,
+      "file": "input.py",
+      "line_numbers": [],
+      "original": "No logging",
+      "updated": "logging.basicConfig and logging calls",
+      "hardening_explanation": "Hardening issue category: Missing logging. Severity: Low. Affected throughout. Original has no audit trail. Updated adds logging for security events and errors."
+    },
+    {
+      "id": 12,
+      "file": "input.py",
+      "line_numbers": [12, 20, 26, 32, 42, 58, 64],
+      "original": "conn = sqlite3.connect(...)\n...\nconn.close()",
+      "updated": "with sqlite3.connect(...) as conn:",
+      "hardening_explanation": "Hardening issue category: Improper resource management. Severity: Low. Affected lines: 12,20,26,32,42,58,64. Original manually manages connections, risking leaks. Updated uses context managers for automatic cleanup."
+    },
+    {
+      "id": 13,
+      "file": "input.py",
+      "line_numbers": [50],
+      "original": "os.system(f\"copy {temp_file} {output_path}\")",
+      "updated": "shutil.move(temp_path, output_path)",
+      "hardening_explanation": "Hardening issue category: Unsafe subprocess usage. Severity: High. Affected line: 50. os.system can be insecure. Updated uses shutil.move for safe file operations."
+    }
+  ]
+}
