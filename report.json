@@ -1,0 +1,154 @@
+{
+  "summary": {
+    "total_hardening_issues": 13,
+    "critical": 2,
+    "high": 6,
+    "medium": 5,
+    "low": 0
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "input.py",
+      "line_numbers": [27, 35, 59],
+      "category": "SQL Injection",
+      "severity": "CRITICAL",
+      "original": "query = \"INSERT INTO users (username, password, email) VALUES ('\" + username + \"', '\" + hashed_pwd + \"', '\" + email + \"')\" / query = \"SELECT * FROM users WHERE username='\" + username + \"' AND password='\" + hashed_pwd + \"'\" / query = f\"SELECT * FROM users WHERE username='{username}'\"",
+      "updated": "cursor.execute(\"INSERT INTO users (username, password, email) VALUES (?, ?, ?)\", (username, hashed_pwd, email)) / cursor.execute(\"SELECT * FROM users WHERE username = ?\", (username,)) / cursor.execute(\"SELECT id, username, email FROM users WHERE username = ?\", (username,))",
+      "hardening_explanation": "Replaced string concatenation and f-strings with parameterized queries using '?' placeholders. Parameterized queries completely prevent SQL injection attacks by treating all inputs as data rather than executable SQL code. This is the most critical security hardening for database operations.",
+      "why_insufficient": "String concatenation allows attackers to inject SQL commands. For example, an attacker with username \"admin' --\" could bypass authentication by manipulating the query structure."
+    },
+    {
+      "id": 2,
+      "file": "input.py",
+      "line_numbers": [23],
+      "category": "Cryptographic Weakness - Weak Hashing",
+      "severity": "HIGH",
+      "original": "return hashlib.md5(password.encode()).hexdigest()",
+      "updated": "salt = secrets.token_bytes(32); iterations = 100000; hashed = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, iterations); return salt.hex() + ':' + hashed.hex()",
+      "hardening_explanation": "Replaced MD5 with PBKDF2-SHA256 featuring 100,000 iterations (NIST recommendation). Implemented proper salt generation using secrets module (32 bytes). Added verify_password() function for constant-time comparison to prevent timing attacks. MD5 is cryptographically broken and unsuitable for password hashing.",
+      "why_insufficient": "MD5 lacks salting, making it vulnerable to rainbow table attacks and fast GPU/ASIC cracking. Modern GPUs can compute billions of MD5 hashes per second. Without salt, identical passwords produce identical hashes, revealing user patterns."
+    },
+    {
+      "id": 3,
+      "file": "input.py",
+      "line_numbers": [45, 46, 47, 48],
+      "category": "Cryptographic Weakness - Insecure Random",
+      "severity": "HIGH",
+      "original": "token = \"\"; for i in range(32): token += str(random.randint(0, 9))",
+      "updated": "token = secrets.token_urlsafe(32)",
+      "hardening_explanation": "Replaced random.randint() with secrets.token_urlsafe(), which uses os.urandom() for cryptographically secure randomness. secrets module is specifically designed for generating security-sensitive tokens unsuitable for prediction or enumeration.",
+      "why_insufficient": "random.randint() uses Mersenne Twister PRNG, which is predictable even with limited observations. Session tokens generated this way can be guessed by attackers, compromising session integrity. Additionally, only numeric tokens (32 digits) have only ~10^32 possible values, which is brute-forceable."
+    },
+    {
+      "id": 4,
+      "file": "input.py",
+      "line_numbers": [52],
+      "category": "Resource Management - Insecure Temp Files",
+      "severity": "HIGH",
+      "original": "temp_file = tempfile.mktemp(suffix='.dat')",
+      "updated": "with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp_file: temp_path = temp_file.name",
+      "hardening_explanation": "Replaced deprecated tempfile.mktemp() with NamedTemporaryFile(). mktemp() creates a race condition window where an attacker could create files at the predicted path. NamedTemporaryFile atomically creates the file with secure permissions (0o600), preventing access by other users.",
+      "why_insufficient": "tempfile.mktemp() is deprecated and has a TOCTOU (time-of-check-time-of-use) vulnerability. An attacker can predict the temp filename and create a symlink or file before the application uses it, leading to arbitrary file write or read vulnerabilities."
+    },
+    {
+      "id": 5,
+      "file": "input.py",
+      "line_numbers": [54, 64],
+      "category": "Command Injection",
+      "severity": "CRITICAL",
+      "original": "os.system(f\"copy {temp_file} {output_path}\") / subprocess.call(cmd, shell=True)",
+      "updated": "import shutil; shutil.copy2(temp_path, output_path) / shutil.copy2('users.db', backup_path)",
+      "hardening_explanation": "Removed os.system() and subprocess with shell=True, replacing with secure shutil.copy2(). shell=True combined with untrusted input allows arbitrary command execution. Using shutil avoids shell entirely, preventing command injection attacks.",
+      "why_insufficient": "os.system() and subprocess.call(shell=True) pass commands to the shell for interpretation. If file paths contain shell metacharacters (;, |, &&, etc.), attackers can inject arbitrary commands with application privileges. Even with input validation, this is inherently unsafe."
+    },
+    {
+      "id": 6,
+      "file": "input.py",
+      "line_numbers": [56, 68],
+      "category": "Deserialization - Unsafe Pickle",
+      "severity": "HIGH",
+      "original": "pickle.dump(user_data, f) / pickle.load(f)",
+      "updated": "json.dump({...}, temp_file) / user_data = json.load(f)",
+      "hardening_explanation": "Replaced unsafe pickle with JSON format. pickle.load() can execute arbitrary Python code embedded in the pickle stream. JSON is a safe, text-based format incapable of executing code, making it suitable for untrusted data deserialization.",
+      "why_insufficient": "pickle is inherently unsafe for untrusted data. A malicious pickle file can execute arbitrary Python code during deserialization, allowing complete system compromise. This vulnerability exists even with 'restricted' unpickling modes."
+    },
+    {
+      "id": 7,
+      "file": "input.py",
+      "line_numbers": [10, 11, 12],
+      "category": "Secrets Management - Hardcoded Credentials",
+      "severity": "HIGH",
+      "original": "DATABASE_PASSWORD = \"admin123!@#\" / API_KEY = \"sk-1234567890abcdefghijklmnopqrstuvwxyz\" / ENCRYPTION_KEY = \"my_secret_key_2024\"",
+      "updated": "DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', 'MISSING_PASSWORD') / API_KEY = os.getenv('API_KEY', 'MISSING_API_KEY') / ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'MISSING_ENCRYPTION_KEY')",
+      "hardening_explanation": "Moved all secrets to environment variables using os.getenv(). Hardcoded secrets in source code are exposed in version control, compiled binaries, container images, and process listings. Environment variables provide credential injection at runtime without exposing secrets in code.",
+      "why_insufficient": "Hardcoded secrets in source code are accessible to anyone with code repository access, container image access, or process inspection capabilities. Secrets in version control history are permanent and difficult to revoke. This violates OWASP A02:2021 and CWE-798."
+    },
+    {
+      "id": 8,
+      "file": "input.py",
+      "line_numbers": [27, 35, 59],
+      "category": "Input Validation - Missing Validation",
+      "severity": "HIGH",
+      "original": "No input validation on username, password, email, or other parameters",
+      "updated": "Added validate_input() function with: type checking, length limits (MAX_USERNAME_LENGTH=255, MAX_EMAIL_LENGTH=255, MIN_PASSWORD_LENGTH=12), regex pattern validation (username: ^[a-zA-Z0-9_-]{3,}$, email: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$)",
+      "hardening_explanation": "Implemented comprehensive input validation function with whitelist patterns and length constraints. Validates all user inputs before database operations or external calls. Prevents not only SQL injection but also buffer overflows, XSS, and format string attacks.",
+      "why_insufficient": "Without input validation, the application is vulnerable to multiple attack vectors: malformed emails can cause downstream errors, unusually long usernames can cause buffer issues, special characters bypass security checks. Accepting all input without scrutiny violates secure coding principles."
+    },
+    {
+      "id": 9,
+      "file": "input.py",
+      "line_numbers": [1, 100],
+      "category": "Error Handling - Missing Error Handling",
+      "severity": "MEDIUM",
+      "original": "No try-except blocks or error handling throughout the application",
+      "updated": "Added comprehensive try-except blocks in all functions with specific exception handling (sqlite3.Error, ValueError, OSError, requests.RequestException). All exceptions logged with logger.error() or logger.warning() before re-raising.",
+      "hardening_explanation": "Implemented proper exception handling with logging to security.log. Prevents information disclosure through stack traces (which reveal implementation details to attackers) and ensures application doesn't crash revealing sensitive debug information.",
+      "why_insufficient": "Unhandled exceptions result in stack trace output to logs or console, revealing internal application structure, file paths, and implementation details to attackers. Database connection failures or permission errors exposed without sanitization violate security logging practices."
+    },
+    {
+      "id": 10,
+      "file": "input.py",
+      "line_numbers": [1, 100],
+      "category": "Logging - Missing Audit Trail",
+      "severity": "MEDIUM",
+      "original": "No logging of security-relevant events (authentication attempts, failures, data access)",
+      "updated": "Added logging.basicConfig() with FileHandler('security.log'). Implemented logger.info/warning/error calls for: user registration, authentication success/failure, account lockouts, data export/import, rate limit violations, and all errors.",
+      "hardening_explanation": "Comprehensive security logging enables detection of attacks, forensic analysis, and compliance with logging requirements (GDPR, PCI-DSS, SOC 2). Logs include timestamp, severity, and details. Saved to persistent file (security.log) for audit.",
+      "why_insufficient": "Without logging, security breaches cannot be detected or investigated. Failed authentication attempts go unnoticed, allowing brute force attacks to proceed silently. Data breaches cannot be analyzed for scope or attribution. Violates NIST Cybersecurity Framework and ISO 27001."
+    },
+    {
+      "id": 11,
+      "file": "input.py",
+      "line_numbers": [27, 35, 59],
+      "category": "Rate Limiting - Missing Rate Limiting",
+      "severity": "MEDIUM",
+      "original": "Functions callable unlimited times (no rate limiting on login, data access, notifications)",
+      "updated": "Added @rate_limit decorator limiting to RATE_LIMIT_CALLS=100 per RATE_LIMIT_PERIOD=3600. Applied to register_user(), authenticate_user(), send_notification(), get_user_by_name(). Added login attempt tracking with MAX_LOGIN_ATTEMPTS=5 and LOGIN_ATTEMPT_TIMEOUT=900 (15 min account lockout).",
+      "hardening_explanation": "Rate limiting prevents brute force attacks (password guessing), DoS attacks, and API abuse. Login attempt tracking with account lockout prevents credential stuffing. Applied decoratively to minimize code duplication and ensure consistent enforcement.",
+      "why_insufficient": "Without rate limiting, attackers can perform unlimited login attempts (brute forcing), trigger unlimited notifications (DoS/resource exhaustion), and perform unlimited data queries (information disclosure). Account lockout is mandatory for compliance with security standards and prevents credential stuffing."
+    },
+    {
+      "id": 12,
+      "file": "input.py",
+      "line_numbers": [61],
+      "category": "Network Security - Missing HTTPS Verification",
+      "severity": "MEDIUM",
+      "original": "api_url = f\"https://api.example.com/send?key={API_KEY}\" with no SSL verification or retry logic",
+      "updated": "Created create_session() function with: HTTPAdapter + Retry strategy (3 retries, backoff), session.verify=True for enforced SSL verification, timeout=5 on requests, parameter passing instead of URL params for sensitive data",
+      "hardening_explanation": "Enforced HTTPS with certificate verification prevents MITM attacks. Retry logic improves resilience. Parameters passed in request body/params rather than URL prevents credential logging. Timeouts prevent resource exhaustion from hanging connections.",
+      "why_insufficient": "Without SSL verification, attackers can perform man-in-the-middle attacks intercepting API communications and stealing credentials. No timeout can cause indefinite hanging if remote server is compromised. API keys in URL parameters are logged in web server access logs and browser history."
+    },
+    {
+      "id": 13,
+      "file": "input.py",
+      "line_numbers": [27],
+      "category": "Access Control - Missing Password Complexity",
+      "severity": "MEDIUM",
+      "original": "register_user() accepts any password, including very short or simple passwords like 'password123'",
+      "updated": "Added MIN_PASSWORD_LENGTH = 12 constant. Added validation: if len(password) < MIN_PASSWORD_LENGTH: raise ValueError(). Updated example to 'SecurePassword123!'",
+      "hardening_explanation": "Password complexity requirements reduce brute-force effectiveness. 12-character minimum aligns with NIST recommendations. Enforced at registration prevents weak credentials. Works with PBKDF2 hashing to significantly increase attack complexity.",
+      "why_insufficient": "Short passwords (like 'password123' at 11 chars) are rapidly brute-forced even with strong hashing. NIST recommendations (800-63B) mandate sufficient length. Without enforcement, users inevitably choose weak passwords, undermining all other security measures."
+    }
+  ]
+}
