@@ -1,0 +1,106 @@
+You are a software security hardening engineer. Your task is to review, audit, and harden the provided source file named input.py according to preventive security improvements and industry best practices.
+
+Your responsibilities include:
+
+1. Identify all security hardening issues in input.py, including but not limited to:
+   - Insecure default configurations
+   - Missing security controls or defensive mechanisms
+   - Weak permissions or violations of the principle of least privilege
+   - Lack of input validation, resource limits, logging, or safe error handling
+   - Use of unsafe libraries, functions, or insecure coding patterns
+   - Missing safeguards such as timeouts, rate limiting, or isolation
+   - Failure to follow secure coding, deployment, or operational best practices
+
+   For each identified issue, report the file name and exact line numbers.
+
+2. Do NOT focus on exploit-driven vulnerabilities or secret exposure unless they are a direct consequence of hardening deficiencies.
+   The primary goal is to detect non-compliance with preventive security improvements and security best practices.
+
+3. Create an explicit, full backup of the original input.py named input_backup.py.
+
+   - input_backup.py MUST be an exact copy of the original input.py before any modifications.
+   - input_backup.py MUST be fully generated and included as a standalone file in the final output.
+   - Do NOT describe the backup abstractly or implicitly — the complete source code of input_backup.py must be present.
+
+4. Modify and harden the source code to produce a secure, production-ready version of input.py.
+
+   - input.py MUST contain the hardened implementation.
+   - input_backup.py MUST remain unmodified after creation.
+   - Both files MUST exist independently and simultaneously.
+
+5. For each hardening improvement, provide a detailed explanation including:
+   - Hardening issue category
+   - Severity or risk level (critical / high / medium / low)
+   - Affected line numbers
+   - Why the original implementation is insufficient from a hardening perspective
+   - How the applied change improves preventive security
+
+   Save this information in a structured JSON file named report.json using the following format:
+
+   {
+     "summary": {
+       "total_hardening_issues": <integer>,
+       "critical": <integer>,
+       "high": <integer>,
+       "medium": <integer>,
+       "low": <integer>
+     },
+     "details": [
+       {
+         "id": <integer>,
+         "file": "input.py",
+         "line_numbers": [<list of integers>],
+         "original": "<string>",
+         "updated": "<string>",
+         "hardening_explanation": "<string>"
+       }
+     ]
+   }
+
+6. Generate environment replication and hardening-aware artifacts, including:
+   - requirements.txt with pinned dependency versions
+   - A Dockerfile following container hardening best practices
+   - setup.sh (Linux/macOS) using secure defaults
+
+7. Generate test execution scripts:
+   - run_test.sh (Linux/macOS)
+   - run_test.bat (Windows)
+
+   The test scripts MUST:
+   - Explicitly execute input_backup.py and input.py as separate test targets
+   - Be written such that input_backup.py is expected to FAIL at least one test due to missing hardening
+   - Allow input.py to PASS when hardening is correctly applied
+   - Reflect real, security-relevant behavioral differences (no hard-coded exits)
+
+8. Implement an automatic test execution script named auto_test.py that:
+   - Detects the current runtime environment (Windows / Linux / Docker)
+   - Runs the appropriate test script
+   - Executes tests for input_backup.py and input.py sequentially
+   - Uses real exit codes to determine success or failure
+   - Saves logs to logs/test_run.log
+   - Logs MUST include timestamp, tested file name, command output, and final status:
+     TEST PASSED or TEST FAILED
+
+9. After generating all files, automatically execute auto_test.py.
+
+   - The execution MUST be real, not simulated.
+   - input_backup.py is EXPECTED to FAIL.
+   - hardened input.py is EXPECTED to PASS.
+   - If actual results differ from expectations, do NOT fabricate outcomes.
+   - Instead, explicitly explain why the observed behavior differs (e.g., test design, environment limitation, or hardening side effects).
+
+10. The final response MUST explicitly list and present all generated files, including:
+    - input_backup.py (full original source code)
+    - input.py (full hardened source code)
+    - report.json
+    - auto_test.py
+    - All scripts and configuration files
+
+    Any response that omits the full content of input_backup.py is considered incomplete.
+
+8. Generate a README.md file that provides:
+   - An overview of all generated files and their purpose.
+   - Step-by-step instructions to set up the environment.
+   - How to run the test scripts (run_test.sh for Linux/macOS, run_test.bat for Windows).
+   - How to use auto_test.py for automatic environment detection and testing.
+   - How to check logs in logs/test_run.log and interpret TEST PASSED or TEST FAILED status.

@@ -1,0 +1,2 @@
+# Minimal dependencies - standard library used; requests included as optional for notification functionality
+requests==2.31.0
