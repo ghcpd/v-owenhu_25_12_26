@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "total_hardening_issues": 10,
+    "critical": 3,
+    "high": 4,
+    "medium": 2,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "input.py",
+      "line_numbers": [9, 10, 11],
+      "original": "DATABASE_PASSWORD = \"admin123!@#\"\nAPI_KEY = \"sk-1234567890abcdefghijklmnopqrstuvwxyz\"\nENCRYPTION_KEY = \"my_secret_key_2024\"",
+      "updated": "Read secrets from environment (DATABASE_PATH, API_KEY) and do not hard-code secrets in source code.",
+      "hardening_explanation": "Hardening category: insecure default configuration / secret management.\nSeverity: critical.\nWhy: Hard-coded credentials and API keys in source code risk accidental exposure and bypass secret rotation.\nChange: Secrets are now provided via environment variables; code refuses to depend on hard-coded secrets and logs a warning if API_KEY is absent, preventing secret leakage and enabling secure secret management."
+    },
+    {
+      "id": 2,
+      "file": "input.py",
+      "line_numbers": [21, 22],
+      "original": "def hash_password(password):\n    return hashlib.md5(password.encode()).hexdigest()",
+      "updated": "Replaced MD5 with bcrypt.hashpw + salt; added verify_password() to check passwords.",
+      "hardening_explanation": "Hardening category: weak cryptography.\nSeverity: critical.\nWhy: MD5 is cryptographically broken and unsuitable for password storage; lacks salt and is fast (facilitates brute-force).\nChange: Use bcrypt with automatic salt and appropriate work factor to store slow, salted hashes. Improves resistance to brute-force and rainbow-table attacks."
+    },
+    {
+      "id": 3,
+      "file": "input.py",
+      "line_numbers": [28, 38, 81],
+      "original": "query = \"INSERT INTO users (username, password, email) VALUES ('\" + username + "', '" + hashed_pwd + "', '" + email + "')\"\n...\nquery = \"SELECT * FROM users WHERE username='\" + username + "' AND password='" + hashed_pwd + "'\"\n...\nquery = f\"SELECT * FROM users WHERE username='{username}'\"",
+      "updated": "All SQL statements converted to parameterized queries (placeholders) and unique constraint added on username.",
+      "hardening_explanation": "Hardening category: SQL injection / unsafe coding patterns.\nSeverity: high.\nWhy: String concatenation with user data enables SQL injection.\nChange: Use parameterized queries (prepared statements) to prevent injection, and enforce uniqueness constraints."
+    },
+    {
+      "id": 4,
+      "file": "input.py",
+      "line_numbers": [44, 45, 46, 47, 48],
+      "original": "def generate_session_token():\n    token = \"\"\n    for i in range(32):\n        token += str(random.randint(0, 9))\n    return token",
+      "updated": "Replaced with secrets.token_urlsafe(32) for cryptographically secure tokens.",
+      "hardening_explanation": "Hardening category: weak randomness.\nSeverity: high.\nWhy: random.randint is not cryptographically secure for session tokens.\nChange: Use secrets.token_urlsafe which uses a cryptographically secure RNG. Improves session token unpredictability."
+    },
+    {
+      "id": 5,
+      "file": "input.py",
+      "line_numbers": [57, 58, 59],
+      "original": "temp_file = tempfile.mktemp(suffix='.dat')\n    with open(temp_file, 'wb') as f:\n        pickle.dump(user_data, f)",
+      "updated": "Use tempfile.NamedTemporaryFile(delete=False) + json.dump for safe serialization; set restrictive file permissions.",
+      "hardening_explanation": "Hardening category: insecure temp file handling & unsafe serialization.\nSeverity: high.\nWhy: tempfile.mktemp is vulnerable to race conditions; pickle is unsafe for untrusted data.\nChange: Use NamedTemporaryFile to avoid races and JSON (safe) for serialization; set file permissions to 0600."
+    },
+    {
+      "id": 6,
+      "file": "input.py",
+      "line_numbers": [61, 70, 72],
+      "original": "os.system(f\"copy {temp_file} {output_path}\")\n...\ncmd = f\"xcopy users.db {backup_path} /Y\"\nsubprocess.call(cmd, shell=True)",
+      "updated": "Use shutil.copy2 and subprocess-free file operations; avoid shell=True and os.system to prevent command injection and make operations cross-platform.",
+      "hardening_explanation": "Hardening category: unsafe OS command execution / platform dependence.\nSeverity: high.\nWhy: os.system and subprocess with shell=True are command-injection vectors and are platform dependent.\nChange: Use shutil.copy2 and local file APIs, set safe file permissions, and avoid shell invocation."
+    },
+    {
+      "id": 7,
+      "file": "input.py",
+      "line_numbers": [65, 66, 67],
+      "original": "def import_user_data(file_path):\n    with open(file_path, 'rb') as f:\n        user_data = pickle.load(f)",
+      "updated": "Import using json.load and validate structure; raise on invalid input.",
+      "hardening_explanation": "Hardening category: unsafe deserialization.\nSeverity: critical.\nWhy: pickle.load can execute arbitrary code during deserialization.\nChange: Switch to JSON for portable, safe serialization and validate the loaded data."
+    },
+    {
+      "id": 8,
+      "file": "input.py",
+      "line_numbers": [24, 34, 74],
+      "original": "register_user(... without input validation)\nauthenticate_user(... no input validation)\nsend_notification(email, message) prints and uses API_KEY directly",
+      "updated": "Added input validation (username/email/password), logging, and send_notification stub that respects API_KEY presence and timeouts.",
+      "hardening_explanation": "Hardening category: missing input validation / insecure operational behavior.\nSeverity: medium.\nWhy: No validation increases risk of invalid or malicious input; notifications use secrets directly and perform unbounded network operations.\nChange: Add validation, logging, and safe notification behavior (no external calls without API key)."
+    },
+    {
+      "id": 9,
+      "file": "input.py",
+      "line_numbers": [13, 14, 15, 16, 17, 18],
+      "original": "init_database() opens sqlite3 connections and commits but lacks context managers and file-permission hardening",
+      "updated": "Database initialization uses context managers and sets restrictive file permissions where possible.",
+      "hardening_explanation": "Hardening category: resource management / file permission hardening.\nSeverity: medium.\nWhy: Not using context managers can lead to leaked connections; DB files may have world-readable permissions.\nChange: Use context managers and set 0o600 file permissions when possible."
+    },
+    {
+      "id": 10,
+      "file": "input.py",
+      "line_numbers": [1, 2, 3, 4],
+      "original": "No centralized logging, error handling, or clear failure modes",
+      "updated": "Added logging, explicit exceptions, input validation, and safer failure handling in main().",
+      "hardening_explanation": "Hardening category: observability & error handling.\nSeverity: low.\nWhy: Without logging and clear errors, detecting and responding to issues is harder.\nChange: Added structured logging and error handling to aid secure operations and auditing."
+    }
+  ]
+}
