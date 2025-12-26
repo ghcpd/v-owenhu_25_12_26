@@ -1,0 +1,114 @@
+Role & Objective
+You are a senior security engineer and maintainer-level developer. In a single turn, perform a full preventive security hardening engagement on the provided Python module `input.py`, produce hardened code and operational artifacts, run a self-contained test harness that demonstrates the hardening worked, and return all required files and results in the response. This is a single-shot task — do not ask questions or request follow-ups.
+
+Inputs & Context
+- Input file to operate on: `input.py` (present in the current working directory). Treat this file as the authoritative, original source code to inspect and harden.
+- Working directory: current working directory (do not change directories unless using absolute paths).
+- Environment-sensitive values must use placeholders when appropriate: e.g., `<API_KEY>`, `<BACKUP_DIR>`, `<DB_PATH>`.
+
+Primary objectives (summary)
+1. Audit `input.py` for preventive hardening deficiencies and produce a line-accurate report.
+2. Create an exact, byte-for-byte copy of the original named `input_backup.py` (must be identical to the original before any edits) and include its full source in the final response.
+3. Produce a hardened, production-ready `input.py` that fixes all hardening issues while preserving intended functionality and providing safe defaults (secrets must be provided from environment/config).
+4. Produce supporting artifacts (tests, CI-friendly scripts, container config) and execute an automated test that proves the hardened `input.py` passes and the original `input_backup.py` fails at least one hardening check.
+5. Beautify and include test logs (`logs/test_run.log`) and include machine-readable and human-readable summaries.
+
+Detailed step-by-step instructions (executable, single-turn)
+1. Read and snapshot
+   - Read the existing `input.py` from disk and create an exact copy named `input_backup.py` **before** making any modifications. `input_backup.py` must be byte-identical to the original file.
+
+2. Static audit (line-accurate)
+   - Produce a complete hardening audit that identifies all preventive-security deficiencies (cryptography, secrets, unsafe deserialization, command/shell usage, SQL concatenation, insecure defaults, missing validation, missing timeouts/rate-limiting, file-permission issues, TOCTOU patterns, excessive privileges, missing logging, missing resource limits, etc.).
+   - For each finding include: id, file (`input.py`), exact line numbers, original snippet (short, exact), remediation snippet (short), category, and severity (critical/high/medium/low). Collect these into `report.json` using this schema (mandatory):
+     {
+       "summary": {"total_hardening_issues": <int>, "critical": <int>, "high": <int>, "medium": <int>, "low": <int>},
+       "details": [ { "id": <int>, "file": "input.py", "line_numbers": [<ints>], "original": "<string>", "updated": "<string>", "hardening_explanation": "<string>" } ]
+     }
+
+3. Hardening changes — produce a new `input.py`
+   - BEFORE editing, ensure `input_backup.py` exists and is an exact copy.
+   - Required hardening (non-negotiable):
+     - Replace any weak hashing (MD5/SHA1/etc.) for passwords with a memory-hard KDF (Argon2 or bcrypt with parameters); provide verify function.
+     - Eliminate SQL string concatenation; use parameterized queries everywhere.
+     - Remove unsafe deserialization (pickle); use JSON with strict schema validation for export/import.
+     - Replace insecure temp-file usage (`mktemp`) with secure APIs (`NamedTemporaryFile`) and atomic moves.
+     - Eliminate use of `os.system`/`shell=True` with interpolated inputs; use `shutil` or subprocess with argument lists, timeouts, and error checking.
+     - Replace predictable RNG with `secrets` for session tokens.
+     - Remove hard-coded secrets/credentials; require environment variables or explicit configuration; fail loudly if not provided.
+     - Add input validation, basic rate-limiting for authentication attempts, and safe error handling (no secret leakage in exceptions).
+     - Set restrictive file permissions where applicable (e.g., 0o600) where the platform supports it.
+     - Add structured logging (timestamped) and avoid printing secrets.
+     - Ensure functions are testable and that main() does not seed insecure demo accounts by default.
+   - Keep public function signatures compatible where reasonable (register_user, authenticate_user, export_user_data, import_user_data, backup_database, send_notification, get_user_by_name, generate_session_token) but secure their internals.
+   - Document environment variables required (use placeholders) and provide sane, secure defaults for development only.
+
+4. Artifacts to generate (exact filenames)
+   - `input_backup.py` — exact original source (must remain unmodified after creation)
+   - `input.py` — hardened implementation (must be syntactically correct and importable)
+   - `report.json` — full structured hardening report (schema above)
+   - `requirements.txt` — pinned dependencies (minimum versions) required to run tests
+   - `Dockerfile` — hardened container image (non-root, minimal packages, no secrets baked in)
+   - `setup.sh` — environment bootstrap for Linux/macOS (venv + pip install -r requirements.txt)
+   - `run_test.sh` and `run_test.bat` — explicit platform test runners that run both `input_backup.py` and `input.py` separately; `input_backup.py` MUST fail at least one test and `input.py` MUST pass all tests
+   - `auto_test.py` — automatic test harness that detects environment (Windows/Linux/Docker), runs appropriate tests, writes `logs/test_run.log`, and exits with non-zero on failure
+   - `README.md` — concise instructions: purpose, files, setup, test commands, how to interpret `logs/test_run.log`
+   - `logs/test_run.log` — test execution log (generated by `auto_test.py`); include both human and machine-readable entries
+
+5. Test design & verification (must be executed now)
+   - Implement behavior-driven tests inside `auto_test.py` (not a separate test framework required):
+     - Verify password hashing: `hash_password()` must produce a memory-hard KDF string (e.g., starts with `$argon2` or similar) and `verify_password()` succeeds for correct password.
+     - Verify `import_user_data()` rejects pickle/binary deserialization files.
+     - Verify `generate_session_token()` returns a cryptographically random, non-numeric token with sufficient entropy (length >= 32 bytes URL-safe string).
+     - Verify `input_backup.py` (the original) fails at least one of the above tests.
+     - Verify `input.py` (hardened) passes all tests.
+   - `auto_test.py` must:
+     - Detect environment (Windows/Linux/Docker)
+     - Execute tests for `input_backup.py` and `input.py` sequentially
+     - Save detailed logs to `logs/test_run.log` with timestamp, tested filename, command output, and final verdict "TEST PASSED" or "TEST FAILED"
+     - Use real exit codes (0 success, non-zero failure)
+   - After generation, run the tests in the current environment and include the real outputs; do not simulate.
+
+6. Post-run obligations
+   - If tests behave as expected (backup fails, hardened passes): include the full `logs/test_run.log` content and a one-paragraph human-readable summary.
+   - If outcomes differ from expectations, do NOT fabricate results: include the real outputs, exact error messages, and a concise explanation why the expectation was not met (environmental limitation, missing dependency, platform permission, etc.).
+
+Output specification (exact deliverables inside the single-turn response)
+- Provide the full contents (complete source) of these files embedded in the response and also written to disk in the current working directory with the exact filenames listed above:
+  - `input_backup.py` (full, exact original source)
+  - `input.py` (full, hardened source)
+  - `report.json` (full JSON document)
+  - `requirements.txt`
+  - `Dockerfile`
+  - `setup.sh`
+  - `run_test.sh`
+  - `run_test.bat`
+  - `auto_test.py`
+  - `README.md`
+  - `logs/test_run.log` (full contents produced by running the harness)
+- Additionally include a one-paragraph executive summary and a compact table (or bullet list) of findings (id, severity, short title).
+
+Constraints & preferences (must be enforced)
+- Single-turn only: do not prompt for clarification; perform reasonable assumptions where unspecified.
+- Do not hard-code secrets into files. Use environment variables or placeholders (`<API_KEY>`, `<BACKUP_DIR>`, `<DB_PATH>`). Fail with a clear error if required secrets are missing at runtime.
+- Do not use unsafe constructs: no pickle for persistent interchange, no `shell=True` with untrusted data, no `mktemp`, no MD5 for password hashing, no storing plaintext secrets.
+- All generated code must be platform-aware (Windows vs POSIX path handling) and must include timeouts on external calls.
+- Tests and scripts must be runnable on a standard developer machine with only Python 3.11+ and the packages in `requirements.txt`.
+- Do not fabricate test execution results. If you cannot run a test in the current environment, report the exact blocking reason and provide the failing command + captured stdout/stderr.
+
+Quality gates (pass criteria)
+- Functional: `input.py` imports cleanly and passes every check in `auto_test.py`.
+- Regression: `input_backup.py` must fail at least one check in `auto_test.py`.
+- Reporting: `report.json` must enumerate every hardening change and the summary counts must match the detail list.
+- Operational: `auto_test.py` must exit with code 0 only when the hardened implementation passes and the backup fails as expected; otherwise exit non-zero.
+
+Deliverable formatting rules (how to present the response)
+- Include the full source of every generated file in the response body (so the end-user can copy/paste). For `input_backup.py` include the exact original source verbatim.
+- Provide `report.json` as a syntactically valid JSON block.
+- Include `logs/test_run.log` both as a pretty (human-friendly) section and as the original machine-readable lines.
+
+Critical compliance notes (place these highest priority at the end)
+- CRITICAL: Do NOT fabricate or guess test results. All pass/fail claims must be supported by real command output included in `logs/test_run.log` and by the exit code of `auto_test.py`.
+- CRITICAL: `input_backup.py` MUST be an exact copy of the original `input.py` prior to edits and MUST be included verbatim in the response.
+- CRITICAL: If any required operation cannot be executed in this environment (missing OS capability, missing interpreter, permission restrictions), stop processing further steps and report an explicit, minimal reproducible failure explanation, including the exact command you attempted and the observed output.
+
+Execution: perform all steps now and write the files into the current working directory. When finished, the single response must contain (and the workspace must contain) every file listed in "Artifacts to generate" and the test outputs described above. The most critical instructions above are repeated here and must be followed last: do not fabricate test outcomes; include exact `input_backup.py` verbatim; and if execution is blocked, report precise failure details.
