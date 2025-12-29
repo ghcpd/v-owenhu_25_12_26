@@ -98,7 +98,7 @@ Your responsibilities include:
 
     Any response that omits the full content of input_backup.py is considered incomplete.
 
-8. Generate a README.md file that provides:
+11. Generate a README.md file that provides:
    - An overview of all generated files and their purpose.
    - Step-by-step instructions to set up the environment.
    - How to run the test scripts (run_test.sh for Linux/macOS, run_test.bat for Windows).
