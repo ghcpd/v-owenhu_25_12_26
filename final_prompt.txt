@@ -1,0 +1,288 @@
+# Security Hardening Engineer Task: Comprehensive Code Audit and Remediation
+
+## Role & Objective
+
+You are a software security hardening engineer. Your task is to review, audit, and harden the provided source file named `input.py` according to preventive security improvements and industry best practices. This is a single-turn, complete execution task that must deliver all artifacts and verification results without requiring follow-up interactions.
+
+## Inputs & Context
+
+- **Target File**: `input.py` (located in current working directory)
+- **Input Source**: The file `input.py` contains code requiring security hardening
+- **Working Directory**: Current working directory (all generated files will be created here)
+
+## Comprehensive Security Audit Requirements
+
+### 1. Security Issue Identification
+
+Identify ALL security hardening issues in `input.py`, including but not limited to:
+- Insecure default configurations
+- Missing security controls or defensive mechanisms
+- Weak permissions or violations of the principle of least privilege
+- Lack of input validation, resource limits, logging, or safe error handling
+- Use of unsafe libraries, functions, or insecure coding patterns
+- Missing safeguards such as timeouts, rate limiting, or isolation
+- Failure to follow secure coding, deployment, or operational best practices
+
+For each identified issue, report:
+- File name
+- Exact line numbers
+- Issue category
+- Severity level (critical / high / medium / low)
+
+**Scope Clarification**: Do NOT focus on exploit-driven vulnerabilities or secret exposure unless they are a direct consequence of hardening deficiencies. The primary goal is to detect non-compliance with preventive security improvements and security best practices.
+
+### 2. Backup Creation (MANDATORY)
+
+Create an explicit, full backup of the original `input.py` named `input_backup.py`:
+- `input_backup.py` MUST be an exact copy of the original `input.py` before any modifications
+- `input_backup.py` MUST be fully generated and included as a standalone file
+- Do NOT describe the backup abstractly or implicitly — the complete source code of `input_backup.py` must be present
+- This file must exist independently and remain unmodified after creation
+
+### 3. Code Hardening Implementation
+
+Modify and harden the source code to produce a secure, production-ready version of `input.py`:
+- `input.py` MUST contain the hardened implementation with all security improvements applied
+- `input_backup.py` MUST remain unmodified after creation
+- Both files MUST exist independently and simultaneously
+- All identified security issues must be remediated in `input.py`
+
+### 4. Detailed Audit Report Generation
+
+Create a structured JSON file named `report.json` containing:
+
+**Required JSON Structure**:
+```json
+{
+  "summary": {
+    "total_hardening_issues": <integer>,
+    "critical": <integer>,
+    "high": <integer>,
+    "medium": <integer>,
+    "low": <integer>
+  },
+  "details": [
+    {
+      "id": <integer>,
+      "file": "input.py",
+      "line_numbers": [<list of integers>],
+      "original": "<original code string>",
+      "updated": "<hardened code string>",
+      "hardening_explanation": "<detailed explanation string>"
+    }
+  ]
+}
+```
+
+For each hardening improvement in the details array, provide:
+- **Hardening issue category**: Type of security deficiency
+- **Severity or risk level**: critical / high / medium / low
+- **Affected line numbers**: Exact line numbers in original file
+- **Original code**: The insecure implementation
+- **Updated code**: The hardened implementation
+- **Hardening explanation**: Why the original implementation is insufficient from a hardening perspective and how the applied change improves preventive security
+
+### 5. Environment Replication Artifacts
+
+Generate the following configuration files following security best practices:
+
+**A. requirements.txt**:
+- All Python dependencies with pinned versions (format: `package==x.y.z`)
+- Include all security-related libraries used in hardened code
+
+**B. Dockerfile**:
+- Follow container hardening best practices
+- Use minimal base images
+- Run as non-root user
+- Implement proper layer caching
+- Include security scanning recommendations
+
+**C. setup.sh** (Linux/macOS):
+- Environment initialization script
+- Use secure defaults
+- Include error handling
+- Set proper file permissions
+
+**D. .env.example** (if needed):
+- Template for environment variables
+- Document all required configuration values
+- Never include actual secrets
+
+### 6. Test Execution Scripts
+
+Generate cross-platform test scripts that validate the security improvements:
+
+**A. run_test.sh** (Linux/macOS):
+- Bash script with proper error handling
+- Must execute tests for BOTH `input_backup.py` AND `input.py` explicitly
+- Must clearly report which file is being tested
+- Include timestamps and detailed output
+
+**B. run_test.bat** (Windows):
+- Batch script compatible with Windows Command Prompt
+- Must execute tests for BOTH `input_backup.py` AND `input.py` explicitly
+- Must clearly report which file is being tested
+- Include timestamps and detailed output
+
+**Critical Test Requirements**:
+- The test scripts MUST explicitly test `input_backup.py` and `input.py` as separate test targets
+- Tests must be designed such that `input_backup.py` is EXPECTED TO FAIL due to missing security hardening
+- Tests must allow `input.py` to PASS when hardening is correctly applied
+- Test validation must reflect real, security-relevant behavioral differences (e.g., checking for presence of security controls like input validation, logging, secure hashing, etc.)
+- Do NOT use hard-coded exits or simulated results
+- Use static code analysis or feature detection to validate security controls
+
+### 7. Automatic Test Execution Script
+
+Implement `auto_test.py` with the following specifications:
+
+**Requirements**:
+- Detect the current runtime environment automatically (Windows / Linux / Docker)
+- Run the appropriate test script based on detected environment
+- Execute tests for `input_backup.py` and `input.py` sequentially
+- Use real exit codes to determine success or failure
+- Save all logs to `logs/test_run.log`
+- Create the `logs/` directory if it doesn't exist
+
+**Log Format Requirements**:
+- Include timestamp for each test execution
+- Clearly indicate which file is being tested (input_backup.py or input.py)
+- Capture complete command output
+- Log final status for each file: `TEST PASSED` or `TEST FAILED`
+- **CRITICAL**: The log output MUST explicitly show both filenames:
+  - `input_backup.py: FAILED` (expected)
+  - `input.py: PASSED` (expected)
+
+**Expected Test Outcomes**:
+- `input_backup.py` is EXPECTED TO FAIL (contains vulnerabilities, lacks security controls)
+- `input.py` is EXPECTED TO PASS (all hardening applied, security controls present)
+
+### 8. Automatic Test Execution
+
+After generating all files, automatically execute `auto_test.py`:
+- The execution MUST be real, not simulated
+- `input_backup.py` is EXPECTED TO FAIL
+- Hardened `input.py` is EXPECTED TO PASS
+- If actual results differ from expectations, do NOT fabricate outcomes
+- Instead, explicitly explain why the observed behavior differs (e.g., test design, environment limitation, or hardening side effects)
+- Verify that `logs/test_run.log` contains explicit references to both `input_backup.py` and `input.py` with their respective PASS/FAIL status
+
+### 9. Comprehensive Documentation
+
+Generate `README.md` with the following sections:
+
+**Required Content**:
+- Overview of all generated files and their purpose
+- Step-by-step instructions to set up the environment
+- How to run the test scripts (`run_test.sh` for Linux/macOS, `run_test.bat` for Windows)
+- How to use `auto_test.py` for automatic environment detection and testing
+- How to check logs in `logs/test_run.log`
+- How to interpret `TEST PASSED` or `TEST FAILED` status
+- Security hardening summary with key improvements
+- Deployment guidelines and best practices
+- Troubleshooting section
+
+## Step-by-Step Execution Instructions
+
+Execute the following steps in order without requiring user confirmation:
+
+1. **Read and analyze** `input.py` to identify all security hardening issues
+2. **Create** `input_backup.py` as an exact copy of the original `input.py`
+3. **Generate** `report.json` documenting all identified issues with full details
+4. **Harden** `input.py` by implementing all security improvements
+5. **Generate** environment files: `requirements.txt`, `Dockerfile`, `setup.sh`, `.env.example` (if needed)
+6. **Create** test scripts: `run_test.sh`, `run_test.bat` with proper security control validation
+7. **Implement** `auto_test.py` with environment detection and logging capabilities
+8. **Execute** `auto_test.py` and capture real results
+9. **Verify** that test results show `input_backup.py: FAILED` and `input.py: PASSED`
+10. **Generate** `README.md` with complete documentation
+11. **Create** supplementary documentation files as needed (e.g., audit reports, verification summaries)
+
+## Output Specification
+
+### Required Files (Complete List)
+
+1. **input_backup.py** — Exact copy of original code (MUST contain full source code)
+2. **input.py** — Hardened production code (MUST contain full source code)
+3. **report.json** — Structured audit report with all findings
+4. **requirements.txt** — Pinned Python dependencies
+5. **Dockerfile** — Container hardening configuration
+6. **setup.sh** — Linux/macOS setup script
+7. **run_test.sh** — Linux/macOS test script
+8. **run_test.bat** — Windows test script
+9. **auto_test.py** — Automatic test execution script
+10. **README.md** — Comprehensive documentation
+11. **logs/test_run.log** — Test execution log (auto-generated)
+
+### Optional Supplementary Files
+
+- Additional documentation files (audit completion reports, summaries, etc.)
+- Configuration files as needed
+- Verification artifacts
+
+### File Content Requirements
+
+**CRITICAL**: Any response that omits the full content of `input_backup.py` or `input.py` is considered incomplete. Both files must be fully generated with complete source code.
+
+## Constraints & Preferences
+
+### Security Standards Compliance
+- Follow OWASP Top 10 guidelines
+- Adhere to CWE (Common Weakness Enumeration) best practices
+- Implement NIST secure coding standards
+- Apply defense-in-depth principles
+
+### Code Quality Standards
+- Use idiomatic Python patterns
+- Include comprehensive error handling
+- Implement proper logging with appropriate levels
+- Follow PEP 8 style guidelines
+- Add security-focused code comments
+
+### Test Validation Requirements
+- Tests must detect actual security control differences
+- Use static analysis or feature detection (e.g., check for imports, function definitions, security patterns)
+- Avoid dynamic execution if it causes environment issues
+- Ensure deterministic test outcomes
+
+### Documentation Standards
+- Clear, actionable instructions
+- Include examples where helpful
+- Provide troubleshooting guidance
+- Use proper markdown formatting with code blocks
+
+## Quality Gates & Verification
+
+Before completing the task, verify:
+
+1. ✓ All security issues identified and documented
+2. ✓ `input_backup.py` exists and is identical to original `input.py`
+3. ✓ `input.py` contains all hardening improvements
+4. ✓ `report.json` contains complete structured audit data
+5. ✓ All required configuration files generated
+6. ✓ Test scripts created for both platforms
+7. ✓ `auto_test.py` successfully executed
+8. ✓ Test results show `input_backup.py: FAILED` and `input.py: PASSED`
+9. ✓ `logs/test_run.log` explicitly references both filenames with status
+10. ✓ `README.md` provides complete setup and usage instructions
+11. ✓ All files are syntactically correct and executable
+
+## Final Deliverable Summary
+
+Provide a concise summary listing:
+- Total number of security issues found
+- Severity distribution (critical/high/medium/low)
+- Test execution results with explicit status for both files
+- All generated files with brief descriptions
+- Any deviations from expected behavior with explanations
+
+## Critical Compliance Instructions
+
+- Execute all steps in a single turn without requiring user input
+- Do NOT ask for clarifications or confirmations
+- If assumptions are needed, document them in comments or README
+- Ensure `input_backup.py` FAILS and `input.py` PASSES in test results
+- Test output logs MUST explicitly show both filenames with PASS/FAIL status
+- All file generations must be complete, not placeholder descriptions
+- Provide actual working code, not templates or examples
+- Execute `auto_test.py` and report real results, not simulated outcomes
