@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-12-26T08:33:48.926243Z",
+  "file": "input_backup.py",
+  "rc": 0,
+  "output": "        0 file(s) copied.\nLogin successful!\nSession token: 99391229236385373511491267554864\nSending to john@example.com: Welcome to our system!\nFound user: john_doe\nThe system cannot find the path specified.\n",
+  "status": "TEST FAILED"
+}
+
+{
+  "timestamp": "2025-12-26T08:33:49.508211Z",
+  "file": "input.py",
+  "rc": 0,
+  "output": "2025-12-26 16:33:49,272 INFO user registered: john_doe\n2025-12-26 16:33:49,476 INFO Login successful for john_doe\n2025-12-26 16:33:49,476 INFO Session token generated (redacted): pFJvqCWW...\n2025-12-26 16:33:49,496 INFO exported user 1 to D:\\Bug Bash\\API\\case_25_12_26\\oswe-mini-m23a2s165\\v-owenhu_25_12_26\\backup\\user_data.json\n2025-12-26 16:33:49,497 INFO export temp file: C:\\Users\\v-owenhu\\AppData\\Local\\Temp\\tmpfx1vrmh1.json\n2025-12-26 16:33:49,497 INFO notification queued for john@example.com\n2025-12-26 16:33:49,497 INFO Found user: john_doe\n",
+  "status": "TEST PASSED"
+}
+
+{
+  "timestamp": "2025-12-26T08:33:49.509277Z",
+  "backup_expected_failed": true,
+  "hardened_ok": true
+}
+
