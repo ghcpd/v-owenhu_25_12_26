@@ -1,0 +1,20 @@
+[2025-12-26T08:52:57.099079] CMD=['cmd.exe', '/c', 'run_test.bat'] STATUS=PASSED OUTPUT_START
+input_backup.py: TEST FAILED
+Details: token_ok=False, db_msg=appears to be MD5
+Raw output:
+         0 file(s) copied.
+Login successful!
+Session token: 90004865605834134948303459862588
+Sending to john@example.com: Welcome to our system!
+Found user: john_doe
+
+The system cannot find the path specified.
+
+input_backup.py tests failed (expected
+input_backup.py tests unexpectedly passed
+input.py: TEST PASSED
+Details: token_ok=True, db_msg=uses pbkdf2
+input.py tests passed
+
+
+OUTPUT_END

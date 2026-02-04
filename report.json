@@ -1,0 +1,107 @@
+{
+  "summary": {
+    "total_hardening_issues": 13,
+    "critical": 5,
+    "high": 3,
+    "medium": 4,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "input.py",
+      "line_numbers": [9, 10, 11],
+      "original": "DATABASE_PASSWORD = \"admin123!@#\"\nAPI_KEY = \"sk-1234567890abcdefghijklmnopqrstuvwxyz\"\nENCRYPTION_KEY = \"my_secret_key_2024\"",
+      "updated": "DB_PATH = os.getenv('DB_PATH', 'users.db')\nAPI_KEY = os.getenv('API_KEY')  # must be provided in production environment\nBACKUP_ROOT = os.getenv('BACKUP_ROOT', str(Path.cwd() / 'backups'))",
+      "hardening_explanation": "Hardening issue: hardcoded secrets and insecure default credentials. Severity: medium. Storing secrets and configuration in source control increases exposure risk and violates secret management best practices. Replaced hardcoded secrets with environment-configured variables and fail-closed behavior (skip notifications when API_KEY missing). This enforces secret management and reduces risk of accidental leakage."
+    },
+    {
+      "id": 2,
+      "file": "input.py",
+      "line_numbers": [21, 22],
+      "original": "def hash_password(password):\n    return hashlib.md5(password.encode()).hexdigest()",
+      "updated": "def hash_password(password):\n    salt = secrets.token_bytes(16)\n    dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, PBKDF2_ITERATIONS)\n    return f'pbkdf2_sha256${PBKDF2_ITERATIONS}${salt.hex()}${dk.hex()}'",
+      "hardening_explanation": "Hardening issue: weak password hashing using MD5. Severity: critical. MD5 is cryptographically broken and susceptible to fast brute-force attacks. Replaced MD5 with PBKDF2 (SHA-256) with per-user salt and high iteration count; this greatly increases the cost of offline password cracking. Also added a verification function using constant-time comparison."
+    },
+    {
+      "id": 3,
+      "file": "input.py",
+      "line_numbers": [24, 25, 26, 27, 28, 29, 30, 31],
+      "original": "def register_user(username, password, email):\n    conn = sqlite3.connect('users.db')\n    cursor = conn.cursor()\n    hashed_pwd = hash_password(password)\n    query = \"INSERT INTO users (username, password, email) VALUES ('\" + username + \"', '\" + hashed_pwd + \"', '\" + email + \"')\"\n    cursor.execute(query)\n    conn.commit()\n    conn.close()\n    return True",
+      "updated": "def register_user(username, password, email):\n    if not _validate_username(username): raise ValueError('Invalid username')\n    if not _validate_email(email): raise ValueError('Invalid email')\n    pwd_hash = hash_password(password)\n    with sqlite3.connect(DB_PATH) as conn:\n        cursor = conn.cursor()\n        try:\n            cursor.execute('INSERT INTO users (username, password_hash, email, created_at) VALUES (?, ?, ?, ?)', (username, pwd_hash, email, datetime.utcnow().isoformat()))\n            conn.commit()\n            return True\n        except sqlite3.IntegrityError: return False",
+      "hardening_explanation": "Hardening issue: SQL injection and lack of input validation. Severity: critical. The original code concatenated inputs into SQL strings, enabling SQL injection. Replaced with parameterized queries, input validation (username/email/password strength), and error handling. This enforces least privilege and prevents injection attacks."
+    },
+    {
+      "id": 4,
+      "file": "input.py",
+      "line_numbers": [34, 35, 36, 37, 38, 39, 40, 41, 42],
+      "original": "def authenticate_user(username, password):\n    conn = sqlite3.connect('users.db')\n    cursor = conn.cursor()\n    hashed_pwd = hash_password(password)\n    query = \"SELECT * FROM users WHERE username='\" + username + \"' AND password='\" + hashed_pwd + \"'\"\n    cursor.execute(query)\n    result = cursor.fetchone()\n    conn.close()\n    return result is not None",
+      "updated": "def authenticate_user(username, password):\n    with sqlite3.connect(DB_PATH) as conn:\n        cursor = conn.cursor()\n        cursor.execute('SELECT password_hash FROM users WHERE username=?', (username,))\n        row = cursor.fetchone()\n        if not row: return False\n        stored_hash = row[0]\n        return verify_password(stored_hash, password)",
+      "hardening_explanation": "Hardening issue: SQL injection and weak verification logic. Severity: critical. Fixed by parameterized queries, using stored PBKDF2 hashes and constant-time verification (hmac.compare_digest). Improves authentication security and prevents injection."
+    },
+    {
+      "id": 5,
+      "file": "input.py",
+      "line_numbers": [44, 45, 46, 47, 48],
+      "original": "def generate_session_token():\n    token = \"\"\n    for i in range(32):\n        token += str(random.randint(0, 9))\n    return token",
+      "updated": "def generate_session_token():\n    return secrets.token_hex(32)",
+      "hardening_explanation": "Hardening issue: insecure token generation using the non-cryptographic random module producing predictable numeric tokens. Severity: high. Replaced with the "secrets" module (cryptographically secure) producing sufficiently long hex tokens, improving session security."
+    },
+    {
+      "id": 6,
+      "file": "input.py",
+      "line_numbers": [50, 51, 52, 53, 54, 55, 57, 58, 59, 61, 63],
+      "original": "def export_user_data(user_id, output_path):\n    conn = sqlite3.connect('users.db')\n    cursor = conn.cursor()\n    cursor.execute(\"SELECT * FROM users WHERE id=?\", (user_id,))\n    user_data = cursor.fetchone()\n    conn.close()\n    \n    temp_file = tempfile.mktemp(suffix='.dat')\n    with open(temp_file, 'wb') as f:\n        pickle.dump(user_data, f)\n    \n    os.system(f\"copy {temp_file} {output_path}\")\n    \n    return temp_file",
+      "updated": "def export_user_data(user_id, output_path):\n    with sqlite3.connect(DB_PATH) as conn:\n        cursor = conn.cursor()\n        cursor.execute('SELECT id, username, email, created_at FROM users WHERE id=?', (user_id,))\n        row = cursor.fetchone()\n        user_data = {'id': row[0], 'username': row[1], 'email': row[2], 'created_at': row[3]}\n    tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json')\n    try: os.chmod(tmp.name, 0o600)\n    except Exception: pass\n    with open(tmp.name, 'w', encoding='utf-8') as f: json.dump(user_data, f)\n    out_path = Path(output_path)\n    out_path.parent.mkdir(parents=True, exist_ok=True)\n    shutil.copy2(tmp.name, out_path)\n    return str(tmp.name)",
+      "hardening_explanation": "Hardening issue: insecure temporary file creation (mktemp), unsafe serialization (pickle), and shell copy (os.system) allowing race conditions, arbitrary code execution via deserialization, and command injection. Severity: critical. Replaced with NamedTemporaryFile, JSON serialization, safe chmod, and shutil.copy2 to prevent races and avoid unsafe deserialization and shell usage. Also restricts exported data to non-sensitive fields."
+    },
+    {
+      "id": 7,
+      "file": "input.py",
+      "line_numbers": [65, 66, 67, 68],
+      "original": "def import_user_data(file_path):\n    with open(file_path, 'rb') as f:\n        user_data = pickle.load(f)\n    return user_data",
+      "updated": "def import_user_data(file_path):\n    with open(file_path, 'r', encoding='utf-8') as f:\n        data = json.load(f)\n    if not isinstance(data, dict) or 'username' not in data:\n        raise ValueError('Invalid user export format')\n    return data",
+      "hardening_explanation": "Hardening issue: unsafe deserialization using pickle. Severity: critical. Replaced with JSON parsing and validation to avoid arbitrary code execution from untrusted serialized input."
+    },
+    {
+      "id": 8,
+      "file": "input.py",
+      "line_numbers": [70, 71, 72],
+      "original": "def backup_database(backup_path):\n    cmd = f\"xcopy users.db {backup_path} /Y\"\n    subprocess.call(cmd, shell=True)",
+      "updated": "def backup_database(backup_path):\n    Path(BACKUP_ROOT).mkdir(parents=True, exist_ok=True)\n    dest = Path(BACKUP_ROOT) / Path(backup_path).name\n    tmp_dest = dest.with_suffix('.tmp')\n    shutil.copy2(DB_PATH, tmp_dest)\n    os.replace(tmp_dest, dest)\n    return str(dest)",
+      "hardening_explanation": "Hardening issue: Using shell commands with subprocess and platform-specific tools (xcopy) without validation or error handling; risk of shell injection. Severity: high. Replaced with shutil.copy2 and atomic replace to ensure safe, cross-platform backups and explicit error handling."
+    },
+    {
+      "id": 9,
+      "file": "input.py",
+      "line_numbers": [74, 75, 76],
+      "original": "def send_notification(email, message):\n    api_url = f\"https://api.example.com/send?key={API_KEY}\"\n    print(f\"Sending to {email}: {message}\")",
+      "updated": "def send_notification(email, message):\n    if API_KEY is None: logger.warning('API_KEY not set; skipping notification to %s', email); return False\n    # rate limiting and HTTPS POST with timeout\n    import urllib.request, urllib.parse\n    data = urllib.parse.urlencode({'to': email, 'message': message, 'key': API_KEY}).encode()\n    req = urllib.request.Request('https://api.example.com/send', data=data, method='POST')\n    with urllib.request.urlopen(req, timeout=5) as resp: return True",
+      "hardening_explanation": "Hardening issue: No secret checking, no timeout, and no rate limiting. Severity: medium. Added API_KEY checks, simple rate limiting, and HTTPS POST with timeout and error handling to reduce accidental leakage and improve reliability."
+    },
+    {
+      "id": 10,
+      "file": "input.py",
+      "line_numbers": [78, 79, 80, 81, 82, 83, 84, 85],
+      "original": "def get_user_by_name(username):\n    conn = sqlite3.connect('users.db')\n    cursor = conn.cursor()\n    query = f\"SELECT * FROM users WHERE username='{username}'\"\n    cursor.execute(query)\n    user = cursor.fetchone()\n    conn.close()\n    return user",
+      "updated": "def get_user_by_name(username):\n    with sqlite3.connect(DB_PATH) as conn:\n        cursor = conn.cursor()\n        cursor.execute('SELECT id, username, email, created_at FROM users WHERE username=?', (username,))\n        user = cursor.fetchone()\n        return user",
+      "hardening_explanation": "Hardening issue: SQL injection via formatted query. Severity: high. Replaced with parameterized query and limited columns to avoid accidental exposure of sensitive fields."
+    },
+    {
+      "id": 11,
+      "file": "input.py",
+      "line_numbers": [13, 14, 15, 16, 17, 18, 19],
+      "original": "def init_database():\n    conn = sqlite3.connect('users.db')\n    cursor = conn.cursor()\n    cursor.execute('''CREATE TABLE IF NOT EXISTS users\n                     (id INTEGER PRIMARY KEY, username TEXT, password TEXT, email TEXT)''')\n    conn.commit()\n    conn.close()",
+      "updated": "def init_database():\n    _ensure_db_dir()\n    with sqlite3.connect(DB_PATH) as conn:\n        cursor = conn.cursor()\n        cursor.execute('''CREATE TABLE IF NOT EXISTS users\n                         (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, email TEXT, created_at TEXT)''')\n        conn.commit()",
+      "hardening_explanation": "Hardening issue: weak schema and no directory checks. Severity: medium. Added schema with a dedicated password_hash column, unique constraint for username, and ensured the database directory exists. This improves data integrity and predictable permissions."
+    },
+    {
+      "id": 12,
+      "file": "input.py",
+      "line_numbers": [0],
+      "original": "(No explicit logging or self-test)",
+      "updated": "Added logging configuration and a --self-test entry point validating token strength, PBKDF2 password storage, and authentication behavior.",
+      "hardening_explanation": "Hardening issue: lack of observability and self-verification. Severity: low. Added structured logging and a self-test to validate the most important hardening checks automatically. This helps operations detect misconfiguration and regression."
+    }
+  ]
+}

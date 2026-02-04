@@ -1,0 +1,5 @@
+2025-12-26 16:52:56,877 INFO Database initialized at users.db
+2025-12-26 16:52:56,972 INFO Registered user: john_doe
+2025-12-26 16:52:57,057 INFO Authentication attempt for john_doe: success
+2025-12-26 16:52:57,074 INFO Exported user 1 to D:\Bug Bash\API\case_25_12_26\oswe-mini-prime-new\v-owenhu_25_12_26\backup\user_data.json
+2025-12-26 16:52:57,074 WARNING API_KEY not set; skipping notification to john@example.com
