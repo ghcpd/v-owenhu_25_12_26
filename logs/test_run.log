@@ -1,0 +1,101 @@
+{
+  "module": "input_backup.py",
+  "timestamp": "2025-12-26T08:34:53.275717Z",
+  "tests": [
+    {
+      "name": "hashing_secure",
+      "ok": false,
+      "info": "hash: 712d542fdd375a08dcd1c9f015fc11..."
+    },
+    {
+      "name": "rejects_pickle",
+      "ok": false,
+      "info": "import_user_data accepted a pickle (unsafe)"
+    },
+    {
+      "name": "secure_token",
+      "ok": false,
+      "info": "token(len=32): 035795605166276225828430..."
+    }
+  ],
+  "status": "FAILED"
+}
+
+{
+  "module": "input.py",
+  "timestamp": "2025-12-26T08:34:53.315606Z",
+  "tests": [
+    {
+      "name": "hashing_secure",
+      "ok": true,
+      "info": "hash: $argon2id$v=19$m=65536,t=3,p=4..."
+    },
+    {
+      "name": "rejects_pickle",
+      "ok": true,
+      "info": "rejected as expected: pickle and other binary deserialization formats are disallowed"
+    },
+    {
+      "name": "secure_token",
+      "ok": true,
+      "info": "token(len=43): hIlDQfU2YyoYQ5cDDX7A4xrC..."
+    }
+  ],
+  "status": "PASSED"
+}
+
+{
+  "summary": {
+    "runs": [
+      {
+        "module": "input_backup.py",
+        "timestamp": "2025-12-26T08:34:53.275717Z",
+        "tests": [
+          {
+            "name": "hashing_secure",
+            "ok": false,
+            "info": "hash: 712d542fdd375a08dcd1c9f015fc11..."
+          },
+          {
+            "name": "rejects_pickle",
+            "ok": false,
+            "info": "import_user_data accepted a pickle (unsafe)"
+          },
+          {
+            "name": "secure_token",
+            "ok": false,
+            "info": "token(len=32): 035795605166276225828430..."
+          }
+        ],
+        "status": "FAILED"
+      },
+      {
+        "module": "input.py",
+        "timestamp": "2025-12-26T08:34:53.315606Z",
+        "tests": [
+          {
+            "name": "hashing_secure",
+            "ok": true,
+            "info": "hash: $argon2id$v=19$m=65536,t=3,p=4..."
+          },
+          {
+            "name": "rejects_pickle",
+            "ok": true,
+            "info": "rejected as expected: pickle and other binary deserialization formats are disallowed"
+          },
+          {
+            "name": "secure_token",
+            "ok": true,
+            "info": "token(len=43): hIlDQfU2YyoYQ5cDDX7A4xrC..."
+          }
+        ],
+        "status": "PASSED"
+      }
+    ],
+    "environment": "windows",
+    "timestamp": "2025-12-26T08:34:53.275717Z",
+    "final_status": "ALL_OK"
+  },
+  "timestamp": "2025-12-26T08:34:53.753445Z"
+}
+

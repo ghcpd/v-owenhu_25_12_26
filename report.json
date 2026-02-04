@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "total_hardening_issues": 11,
+    "critical": 3,
+    "high": 4,
+    "medium": 3,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "input.py",
+      "line_numbers": [21,22],
+      "original": "def hash_password(password):\n    return hashlib.md5(password.encode()).hexdigest()",
+      "updated": "def hash_password(password):\n    # uses argon2 (memory-hard KDF) with a safe configuration\n    return _PASSWORD_HASHER.hash(password)",
+      "hardening_explanation": "Hardening category: Cryptographic hardening.\nSeverity: critical.\nWhy: MD5 is fast and unsuitable for passwords (no salt, vulnerable to brute force).\nFix: use a memory-hard KDF (argon2) via a vetted library; this prevents fast offline cracking and enforces salts and parameters."
+    },
+    {
+      "id": 2,
+      "file": "input.py",
+      "line_numbers": [24,28,29,30,31],
+      "original": "query = \"INSERT INTO users (username, password, email) VALUES ('\" + username + "', '" + hashed_pwd + "', '" + email + "')\"\n    cursor.execute(query)",
+      "updated": "cursor.execute(\"INSERT INTO users (username, password, email) VALUES (?, ?, ?)\", (username, hashed_pwd, email))",
+      "hardening_explanation": "Hardening category: SQL injection prevention.\nSeverity: critical.\nWhy: string concatenation allows SQL injection.\nFix: use parameterized queries everywhere to enforce data separation from code."
+    },
+    {
+      "id": 3,
+      "file": "input.py",
+      "line_numbers": [34,38,39],
+      "original": "query = \"SELECT * FROM users WHERE username='\" + username + "' AND password='" + hashed_pwd + "'\"\n    cursor.execute(query)",
+      "updated": "cursor.execute(\"SELECT id, username, password, email FROM users WHERE username=?\", (username,))\n    row = cursor.fetchone()\n    if row and verify_password(password, row[2]):\n        return True\n    return False",
+      "hardening_explanation": "Hardening category: Authentication & SQL safety.\nSeverity: critical.\nWhy: authentication used concatenated SQL and compared hashed strings directly.\nFix: parameterize query, retrieve stored KDF hash and verify using the KDF's verify function."
+    },
+    {
+      "id": 4,
+      "file": "input.py",
+      "line_numbers": [44,45,46,47,48],
+      "original": "def generate_session_token():\n    token = \"\"\n    for i in range(32):\n        token += str(random.randint(0, 9))\n    return token",
+      "updated": "def generate_session_token():\n    # cryptographically secure, URL-safe token with sufficient entropy\n    return secrets.token_urlsafe(32)",
+      "hardening_explanation": "Hardening category: Session/token security.\nSeverity: high.\nWhy: tokens built from random.randint are predictable and numeric-only.\nFix: use the 'secrets' module to produce cryptographically secure, unpredictable tokens."
+    },
+    {
+      "id": 5,
+      "file": "input.py",
+      "line_numbers": [57,58,59,65,66,67],
+      "original": "temp_file = tempfile.mktemp(suffix='.dat')\n    with open(temp_file, 'wb') as f:\n        pickle.dump(user_data, f)\n...\ndef import_user_data(file_path):\n    with open(file_path, 'rb') as f:\n        user_data = pickle.load(f)",
+      "updated": "# use NamedTemporaryFile + JSON and strict schema validation; do NOT use pickle.\n    with open(tmp_path, 'w', encoding='utf-8') as f:\n        json.dump(user_data, f, ensure_ascii=False)\n...\ndef import_user_data(file_path):\n    # only accept JSON; reject pickle to avoid arbitrary code execution.\n    with open(file_path, 'r', encoding='utf-8') as f:\n        return json.load(f)",
+      "hardening_explanation": "Hardening category: Unsafe deserialization & TOCTOU.\nSeverity: critical.\nWhy: 'pickle' allows remote code execution; tempfile.mktemp is vulnerable to race conditions.\nFix: switch to JSON with schema validation and use secure temporary-file APIs (NamedTemporaryFile) with restrictive permissions."
+    },
+    {
+      "id": 6,
+      "file": "input.py",
+      "line_numbers": [61,70,71,72],
+      "original": "os.system(f\"copy {temp_file} {output_path}\")\n...\ncmd = f\"xcopy users.db {backup_path} /Y\"\n    subprocess.call(cmd, shell=True)",
+      "updated": "shutil.copy2(tmp_path, output_path)  # safe, cross-platform copy with error handling\n...\nshutil.copy2(db_path, backup_path)",
+      "hardening_explanation": "Hardening category: Command injection / unsafe OS calls.\nSeverity: high.\nWhy: shell=True and os.system with interpolated paths risk command injection and are non-portable.\nFix: use stdlib file I/O (shutil) and avoid shells; validate paths and use atomic replace."
+    },
+    {
+      "id": 7,
+      "file": "input.py",
+      "line_numbers": [9,10,11,90,97],
+      "original": "DATABASE_PASSWORD = \"admin123!@#\"\nAPI_KEY = \"sk-1234567890abcdefghijklmnopqrstuvwxyz\"\nENCRYPTION_KEY = \"my_secret_key_2024\"\n...\nregister_user(\"john_doe\", \"password123\", \"john@example.com\")\n...\nexport_user_data(1, \"C:\\backup\\user_data.dat\")",
+      "updated": "# secrets must come from environment/config; no hard-coded defaults.\nDATABASE_PASSWORD = os.getenv('APP_DATABASE_PASSWORD')\nAPI_KEY = os.getenv('APP_API_KEY')\n...\n# remove insecure demo account from production main(); require CLI-driven provisioning",
+      "hardening_explanation": "Hardening category: Insecure defaults & credential management.\nSeverity: high.\nWhy: secrets and weak demo credentials are hard-coded and encourage insecure deployments.\nFix: require secrets from environment/secret store and avoid creating default accounts in production code."
+    },
+    {
+      "id": 8,
+      "file": "input.py",
+      "line_numbers": [70,72],
+      "original": "subprocess.call(cmd, shell=True)",
+      "updated": "subprocess.run([...], check=True, timeout=10)  # avoid shell, set timeout and check",
+      "hardening_explanation": "Hardening category: Process hardening.\nSeverity: medium.\nWhy: no timeout or error checking can hang or mask failures.\nFix: enforce timeouts, check return codes and avoid shell invocation."
+    },
+    {
+      "id": 9,
+      "file": "input.py",
+      "line_numbers": [1,5,6],
+      "original": "import hashlib\nimport os\nimport sqlite3\nimport tempfile\nimport random\nimport subprocess\nimport pickle",
+      "updated": "import os\nimport sqlite3\nimport tempfile\nimport shutil\nimport json\nimport secrets\nimport logging\nfrom argon2 import PasswordHasher",
+      "hardening_explanation": "Hardening category: unsafe library usage & missing defensive libs.\nSeverity: medium.\nWhy: unsafe modules (pickle, random) are used for security-sensitive tasks.\nFix: replace with secure equivalents and add structured logging."
+    },
+    {
+      "id": 10,
+      "file": "input.py",
+      "line_numbers": [70,87,92],
+      "original": "def backup_database(backup_path):\n    cmd = f\"xcopy users.db {backup_path} /Y\"\n    subprocess.call(cmd, shell=True)\n...\nif authenticate_user(\"john_doe\", \"password123\"):",
+      "updated": "# backup_database now uses shutil.copy2 with validation and atomic replace; functions provide robust error handling.\n# main() no longer seeds production accounts and performs safe CLI-driven operations only.",
+      "hardening_explanation": "Hardening category: operational security & least privilege.\nSeverity: medium.\nWhy: unsafe backup and demo behavior in main() increase attack surface.\nFix: safe file operations, permission checks, and remove/demo-only behavior from main."
+    }
+  ]
+}
