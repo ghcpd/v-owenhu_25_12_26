@@ -1,0 +1,4 @@
+2025-12-26 16:18:10,730 - INFO - Database initialized successfully.
+2025-12-26 16:18:10,931 - INFO - User john_doe registered successfully.
+2025-12-26 16:18:10,937 - ERROR - Authentication error: Invalid salt
+2025-12-26 16:18:10,938 - INFO - User john_doe retrieved.

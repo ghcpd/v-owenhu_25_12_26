@@ -1,0 +1,45 @@
+2025-12-26 16:15:27 - Detected OS: Windows, running run_test.bat
+2025-12-26 16:15:28 - Command output: Testing input_backup.py...
+        0 file(s) copied.
+Login successful!
+Session token: 10211411563922311848576879913689
+Sending to john@example.com: Welcome to our system!
+Found user: john_doe
+input_backup.py: TEST FAILED (expected to fail due to hardening issues)
+
+2025-12-26 16:15:28 - Error output: The system cannot find the path specified.
+
+2025-12-26 16:15:28 - Final status: TEST FAILED
+2025-12-26 16:17:55 - Detected OS: Windows, running run_test.bat
+2025-12-26 16:17:56 - Command output: Testing input_backup.py...
+        0 file(s) copied.
+Login successful!
+Session token: 54444998074960622660051077389266
+Sending to john@example.com: Welcome to our system!
+Found user: john_doe
+input_backup.py: TEST FAILED (expected to fail due to hardening issues)
+Testing input.py...
+input.py: TEST FAILED
+
+2025-12-26 16:17:56 - Error output: The system cannot find the path specified.
+Traceback (most recent call last):
+  File "D:\Bug Bash\API\case_25_12_26\grok-fast\v-owenhu_25_12_26\input.py", line 12, in <module>
+    from dotenv import load_dotenv
+ModuleNotFoundError: No module named 'dotenv'
+
+2025-12-26 16:17:56 - Final status: TEST PASSED
+2025-12-26 16:18:10 - Detected OS: Windows, running run_test.bat
+2025-12-26 16:18:10 - Command output: Testing input_backup.py...
+        0 file(s) copied.
+Login successful!
+Session token: 50401454354973233428406012217484
+Sending to john@example.com: Welcome to our system!
+Found user: john_doe
+input_backup.py: TEST FAILED (expected to fail due to hardening issues)
+Testing input.py...
+Found user: john_doe
+input.py: TEST PASSED
+
+2025-12-26 16:18:10 - Error output: The system cannot find the path specified.
+
+2025-12-26 16:18:10 - Final status: TEST PASSED
